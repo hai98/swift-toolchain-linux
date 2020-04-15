@@ -4,7 +4,7 @@ shopt -s extglob
 cd "$(dirname "$0")"
 
 if [[ $# -ne 2 ]]; then 
-	echo "Usage: $0 <version> <linux version such as ubuntu16.10>"
+	echo "Usage: $0 <swift version> <linux version such as ubuntu16.10>"
 	exit 1
 fi
 
@@ -13,6 +13,8 @@ info() { echo "[info] $1"; }
 version="$1"
 file_name_mac="swift-${version}-RELEASE-osx"
 file_name_linux="swift-${version}-RELEASE-$2"
+url_mac="https://swift.org/builds/swift-${version}-release/xcode/swift-${version}-RELEASE/${file_name_mac}.pkg"
+url_linux="https://swift.org/builds/swift-${version}-release/${2/./}/swift-${version}-RELEASE/${file_name_linux}.tar.gz"
 package="${file_name_mac}-package.pkg"
 platform="$(uname -s)"
 
@@ -21,26 +23,20 @@ cd toolchains
 
 info "Downloading macOS toolchain"
 if [[ ! -f "toolchain-mac-${version}.pkg" ]]; then
-	curl -#o "toolchain-mac-${version}.pkg" "https://swift.org/builds/swift-${version}-release/xcode/swift-${version}-RELEASE/${file_name_mac}.pkg"
+	curl -#o "toolchain-mac-${version}.pkg" $url_mac
 fi
 
 info "Unpacking macOS toolchain"
 rm -rf mac
-xar -xf "toolchain-mac-${version}.pkg" "${package}/Payload"
-cd "${package}"
 mkdir -p out
-if [[ "$platform" = "Darwin" ]]; then
-       tar -xzf Payload -C out usr
-else
-       gzip -cd Payload | cpio -iD out
-fi
-mv out/usr ../mac
-cd ..
-rm -rf "${package}"
+7z x "toolchain-mac-${version}.pkg"
+7z x Payload\~ -oout
+mv out/usr ./mac
+rm -rf out "toolchain-mac-${version}.pkg" Payload\~
 
 info "Downloading Linux toolchain"
 if [[ ! -f "toolchain-$2-${version}.tar.gz" ]]; then
-	curl -#o "toolchain-$2-${version}.tar.gz" "https://swift.org/builds/swift-${version}-release/${2/./}/swift-${version}-RELEASE/${file_name_linux}.tar.gz"
+	curl -#o "toolchain-$2-${version}.tar.gz" $url_linux
 fi
 
 info "Unpacking Linux toolchain"
